@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#f0f4ff">
+    <title>MK Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #f0f4ff;
+            --bg-secondary: #ffffff;
+            --bg-glass: rgba(255, 255, 255, 0.7);
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-light: #e0e7ff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: rgba(203, 213, 225, 0.5);
+            --shadow: rgba(99, 102, 241, 0.1);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body, html {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 50%, #f0f9ff 100%);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Glass morphism effect */
+        .glass {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px var(--shadow);
+        }
+
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--accent-light);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+
+        /* Smooth animations */
+        .slide-in {
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Message bubbles */
+        .message-sent {
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            color: white;
+            margin-left: auto;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .message-received {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Button styles */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Input focus */
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Mobile sidebar */
+        .sidebar {
+            transition: transform 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 280px;
+                transform: translateX(-100%);
+                z-index: 50;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.3);
+                backdrop-filter: blur(4px);
+                z-index: 40;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+            }
+
+            .overlay.show {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+
+        /* Layout */
+        .chat-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        .messages-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+        }
+
+        .input-wrapper {
+            flex-shrink: 0;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* Status dot */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Avatar */
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        /* User list item */
+        .user-item {
+            transition: all 0.2s ease;
+        }
+
+        .user-item:hover {
+            background: var(--accent-light);
+            transform: translateX(4px);
+        }
+
+        /* Mobile optimization */
+        @media (max-width: 640px) {
+            .input-wrapper {
+                padding: 12px;
+            }
+
+            .message-sent, .message-received {
+                max-width: 85%;
+            }
+        }
+
+        /* Message hover effects */
+        .message-bubble:hover ~ .message-actions {
+            opacity: 1 !important;
+        }
+
+        .message-actions:hover {
+            opacity: 1 !important;
+        }
+
+        /* Tab styles */
+        .tab-button {
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-button.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Overlay for mobile -->
+    <div id="overlay" class="overlay" onclick="closeSidebar()"></div>
+
+    <!-- Main container -->
+    <div class="flex h-full">
+        
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar w-80 glass flex flex-col">
+            
+            <!-- Sidebar header -->
+            <div class="p-5 border-b" style="border-color: var(--border);">
+                <div class="flex items-center justify-between mb-4">
+                    <h1 class="text-2xl font-bold" style="background: linear-gradient(135deg, var(--accent), #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MK Chat</h1>
+                    <button onclick="closeSidebar()" class="md:hidden p-2 hover:bg-[#e0e7ff] rounded-lg transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- User display -->
+                <div id="user-display" class="hidden">
+                    <div class="flex items-center gap-3 p-3 glass rounded-xl">
+                        <div class="avatar" id="user-avatar">U</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs" style="color: var(--text-secondary);">Logged in as</p>
+                            <p class="font-semibold truncate" id="current-username"></p>
+                        </div>
+                        <div class="status-dot"></div>
+                    </div>
+                </div>
+
+                <!-- Auth forms -->
+                <div id="auth-container">
+                    <!-- Login/Register tabs -->
+                    <div class="flex border-b mb-4" style="border-color: var(--border);">
+                        <button class="tab-button active" onclick="showTab('login')">Login</button>
+                        <button class="tab-button" onclick="showTab('register')">Register</button>
+                    </div>
+
+                    <!-- Login form -->
+                    <div id="login-tab" class="tab-content active">
+                        <input 
+                            type="text" 
+                            id="login-username" 
+                            placeholder="Username" 
+                            class="w-full px-4 py-3 glass rounded-xl mb-3 transition border"
+                            style="border-color: var(--border);"
+                            maxlength="20"
+                        >
+                        <input 
+                            type="password" 
+                            id="login-password" 
+                            placeholder="Password" 
+                            class="w-full px-4 py-3 glass rounded-xl mb-3 transition border"
+                            style="border-color: var(--border);"
+                        >
+                        <button 
+                            onclick="login()" 
+                            class="w-full btn-primary py-3 rounded-xl font-semibold">
+                            Login
+                        </button>
+                    </div>
+
+                    <!-- Register form -->
+                    <div id="register-tab" class="tab-content">
+                        <input 
+                            type="text" 
+                            id="register-username" 
+                            placeholder="Choose username" 
+                            class="w-full px-4 py-3 glass rounded-xl mb-3 transition border"
+                            style="border-color: var(--border);"
+                            maxlength="20"
+                        >
+                        <input 
+                            type="password" 
+                            id="register-password" 
+                            placeholder="Choose password (min 4 chars)" 
+                            class="w-full px-4 py-3 glass rounded-xl mb-3 transition border"
+                            style="border-color: var(--border);"
+                        >
+                        <button 
+                            onclick="register()" 
+                            class="w-full btn-primary py-3 rounded-xl font-semibold">
+                            Create Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div id="navigation" class="hidden p-3 border-b" style="border-color: var(--border);">
+                <button onclick="showGroupChat()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition user-item text-left">
+                    <span class="text-xl">💬</span>
+                    <span class="flex-1 font-medium">Group Chat</span>
+                </button>
+            </div>
+
+            <!-- Users list -->
+            <div id="users-section" class="hidden flex-1 flex flex-col p-3 overflow-hidden">
+                <h3 class="text-sm font-semibold mb-3 px-2" style="color: var(--text-secondary);">
+                    Online Users (<span id="user-count">0</span>)
+                </h3>
+                <div id="user-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2"></div>
+            </div>
+
+            <!-- Logout -->
+            <div id="logout-section" class="hidden p-3 border-t" style="border-color: var(--border);">
+                <button onclick="logout()" class="w-full py-3 rounded-xl font-semibold transition" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Main chat area -->
+        <div class="flex-1 chat-wrapper">
+            
+            <!-- Header -->
+            <div class="glass border-b px-5 py-4 flex items-center gap-3" style="border-color: var(--border);">
+                <button onclick="openSidebar()" class="md:hidden p-2 hover:bg-[#e0e7ff] rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <div class="flex-1">
+                    <h2 id="chat-title" class="font-bold text-lg">Welcome to MK Chat</h2>
+                    <p id="chat-subtitle" class="text-sm" style="color: var(--text-secondary);">Login to start messaging</p>
+                </div>
+                <button id="search-btn" onclick="toggleSearch()" class="hidden p-2 hover:bg-[#e0e7ff] rounded-lg transition" title="Search messages">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Messages area -->
+            <div id="messages-container" class="messages-wrapper p-5">
+                
+                <!-- Welcome screen -->
+                <div id="welcome-screen" class="flex items-center justify-center h-full">
+                    <div class="text-center max-w-md glass rounded-3xl p-8">
+                        <div class="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, var(--accent), #8b5cf6);">
+                            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3">Welcome to MK Chat</h3>
+                        <p class="mb-6" style="color: var(--text-secondary);">
+                            A minimal, modern real-time messaging platform
+                        </p>
+                        <div class="text-left space-y-2 text-sm" style="color: var(--text-secondary);">
+                            <p>✓ Real-time messaging</p>
+                            <p>✓ Persistent chat history</p>
+                            <p>✓ Spam protection</p>
+                            <p>✓ Group & private chats</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div id="messages" class="space-y-3"></div>
+            </div>
+
+            <!-- Input area -->
+            <div id="input-area" class="hidden input-wrapper glass border-t px-5 py-4" style="border-color: var(--border);">
+                <!-- Reply Indicator -->
+                <div id="reply-indicator" class="hidden mb-3 p-2 rounded-lg" style="background: var(--bg-glass); border-left: 3px solid var(--accent);">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-xs font-medium" style="color: var(--accent);">Replying to:</p>
+                            <p id="reply-preview" class="text-sm truncate"></p>
+                        </div>
+                        <button type="button" onclick="cancelReply()" class="text-xl hover:opacity-70 px-2">&times;</button>
+                    </div>
+                </div>
+                
+                <div id="typing-indicator" class="hidden text-xs mb-2" style="color: var(--text-secondary);">
+                    <span id="typing-text"></span>
+                </div>
+                <!-- File Preview Area -->
+                <div id="file-preview" class="hidden mb-3 p-3 glass rounded-xl border flex items-center justify-between" style="border-color: var(--border);">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center text-2xl" style="background: rgba(99, 102, 241, 0.1);">
+                            <span id="file-icon">📎</span>
+                        </div>
+                        <div>
+                            <div id="file-name" class="font-medium text-sm"></div>
+                            <div id="file-size" class="text-xs opacity-60"></div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="clearFileSelection()" class="p-2 hover:bg-red-500/10 rounded-lg transition" title="Remove file">
+                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <form onsubmit="sendMessage(event)" class="flex gap-3">
+                    <input type="file" id="file-input" class="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.mp3,.mp4" onchange="handleFileSelect(event)">
+                    <button 
+                        type="button"
+                        onclick="document.getElementById('file-input').click()"
+                        class="glass px-4 py-3 rounded-xl border transition hover:border-purple-400 hover:scale-105"
+                        style="border-color: var(--border);"
+                        title="Upload file">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                        </svg>
+                    </button>
+                    <input 
+                        type="text" 
+                        id="message-input" 
+                        placeholder="Type your message..." 
+                        class="flex-1 px-5 py-3 glass rounded-xl border transition"
+                        style="border-color: var(--border);"
+                        autocomplete="off"
+                        oninput="handleTyping()"
+                    >
+                    <button 
+                        type="submit" 
+                        class="btn-primary px-6 py-3 rounded-xl font-semibold flex items-center gap-2 hover:scale-105 transition">
+                        <span class="hidden sm:inline">Send</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
+                </form>
+                
+                <!-- Warning -->
+                <div id="warning-box" class="hidden mt-3 p-3 rounded-xl" style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning);">
+                    <p class="text-sm font-medium" style="color: var(--warning);" id="warning-text"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Message Modal -->
+    <div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="glass rounded-2xl p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-bold mb-4">Edit Message</h3>
+            <textarea id="edit-textarea" class="w-full px-4 py-3 glass rounded-xl border mb-4" style="border-color: var(--border); min-height: 100px;"></textarea>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeEditModal()" class="px-4 py-2 rounded-lg" style="background: var(--bg-glass);">Cancel</button>
+                <button onclick="saveEdit()" class="btn-primary px-4 py-2 rounded-lg">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Message Modal -->
+    <div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="glass rounded-2xl p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-bold mb-4">Delete Message?</h3>
+            <p class="text-sm mb-6" style="color: var(--text-secondary);">This message will be permanently deleted. This action cannot be undone.</p>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeDeleteModal()" class="px-4 py-2 rounded-lg" style="background: var(--bg-glass);">Cancel</button>
+                <button onclick="confirmDelete()" class="px-4 py-2 rounded-lg text-white" style="background: var(--danger);">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let currentUser = null;
+        let currentRecipient = "GROUP";
+        let isTyping = false;
+        let typingTimeout = null;
+        let typingUsers = {}; // Changed to object: { recipient: Set([users]) }
+        let selectedFile = null;
+        let editingMessageId = null;
+        let replyingToId = null;
+        let messagesCache = {}; // Store messages by ID for reply previews
+        let deletingMessageId = null; // Track message being deleted
+        let onlineUsers = []; // Track online users for header status
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('login-username').focus();
+            // Update relative timestamps every minute
+            setInterval(updateAllTimestamps, 60000);
+            
+            // Check for saved session and auto-login
+            const savedUser = localStorage.getItem('currentUser');
+            const savedPassword = sessionStorage.getItem('userPassword');
+            
+            if (savedUser && savedPassword) {
+                // Auto-login with saved credentials
+                document.getElementById('login-username').value = savedUser;
+                document.getElementById('login-password').value = savedPassword;
+                setTimeout(() => login(), 500);
+            } else if (savedUser) {
+                // Just prefill username
+                document.getElementById('login-username').value = savedUser;
+            }
+        });
+
+        // Tab switching
+        function showTab(tabName) {
+            // Update buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        // Sidebar controls
+        function openSidebar() {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('overlay').classList.add('show');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('overlay').classList.remove('show');
+        }
+
+        // Register
+        async function register() {
+            const username = document.getElementById('register-username').value.trim();
+            const password = document.getElementById('register-password').value;
+            
+            if (!username || username.length < 2) {
+                alert('Username must be at least 2 characters');
+                return;
+            }
+
+            if (!password || password.length < 4) {
+                alert('Password must be at least 4 characters');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Account created successfully! You can now login.');
+                    showTab('login');
+                    document.getElementById('login-username').value = username;
+                    document.getElementById('register-username').value = '';
+                    document.getElementById('register-password').value = '';
+                } else {
+                    alert(data.detail || 'Registration failed');
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+            }
+        }
+
+        // Login
+        async function login() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            
+            if (!username || !password) {
+                alert('Please enter both username and password');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentUser = username;
+                    
+                    // Save session
+                    localStorage.setItem('currentUser', username);
+                    sessionStorage.setItem('userPassword', password);
+                    
+                    // Update UI
+                    document.getElementById('current-username').textContent = username;
+                    document.getElementById('user-avatar').textContent = username.charAt(0).toUpperCase();
+                    
+                    document.getElementById('auth-container').classList.add('hidden');
+                    document.getElementById('user-display').classList.remove('hidden');
+                    document.getElementById('navigation').classList.remove('hidden');
+                    document.getElementById('users-section').classList.remove('hidden');
+                    document.getElementById('logout-section').classList.remove('hidden');
+                    document.getElementById('search-btn').classList.remove('hidden');
+
+                    connectWebSocket();
+                    showGroupChat();
+                } else {
+                    alert(data.detail || 'Login failed');
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+            }
+        }
+
+        // WebSocket
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/${currentUser}`);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                ws.send(JSON.stringify({ type: 'get_history', recipient: currentRecipient }));
+            };
+
+            ws.onmessage = (event) => handleMessage(JSON.parse(event.data));
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                setTimeout(() => currentUser && connectWebSocket(), 3000);
+            };
+
+            ws.onerror = (error) => console.error('WebSocket error:', error);
+        }
+
+        // Handle messages
+        function handleMessage(data) {
+            switch(data.type) {
+                case 'user_list':
+                    updateUserList(data.users);
+                    break;
+                case 'history':
+                    displayHistory(data.messages);
+                    break;
+                case 'message':
+                    displayMessage(data);
+                    break;
+                case 'warning':
+                    showWarning(data.message);
+                    break;
+                case 'kicked':
+                    alert(data.message);
+                    logout();
+                    break;
+                case 'user_typing':
+                    console.log('[WS] Received user_typing:', data);
+                    showTypingIndicator(data.username, data.recipient);
+                    break;
+                case 'user_stop_typing':
+                    console.log('[WS] Received user_stop_typing:', data);
+                    hideTypingIndicator(data.username, data.recipient);
+                    break;
+                case 'reaction_update':
+                    updateReaction(data.message_id, data.emoji, data.username);
+                    break;
+                case 'message_edited':
+                    updateEditedMessage(data.message_id, data.new_text);
+                    break;
+                case 'message_deleted':
+                    removeDeletedMessage(data.message_id);
+                    break;
+                case 'search_results':
+                    displaySearchResults(data.results);
+                    break;
+                case 'user_status_changed':
+                    updateUserStatus(data.username, data.status);
+                    break;
+            }
+        }
+
+        // Update user list - show all registered users with online status
+        async function updateUserList(onlineUsersList) {
+            const list = document.getElementById('user-list');
+            const count = document.getElementById('user-count');
+            
+            // Store online users globally
+            onlineUsers = onlineUsersList;
+            
+            // Update header status if in a private chat
+            updateChatHeaderStatus();
+            
+            try {
+                // Fetch all registered users
+                const response = await fetch('/api/users/all');
+                const data = await response.json();
+                const allUsers = data.users || [];
+                
+                list.innerHTML = '';
+                count.textContent = allUsers.length - 1; // Exclude current user
+
+                allUsers.forEach(user => {
+                    if (user === currentUser) return;
+
+                    const isOnline = onlineUsersList.includes(user);
+                    const div = document.createElement('div');
+                    div.className = 'user-item flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer';
+                    div.onclick = () => startDM(user);
+                    div.innerHTML = `
+                        <div class="relative">
+                            <div class="avatar text-sm">${user.charAt(0).toUpperCase()}</div>
+                            <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2" style="background: ${isOnline ? '#10b981' : '#9ca3af'}; border-color: var(--bg-secondary);"></div>
+                        </div>
+                        <span class="flex-1 text-sm font-medium truncate">${user}</span>
+                        <span class="text-xs opacity-70">${isOnline ? 'Online' : 'Offline'}</span>
+                    `;
+                    list.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                // Fallback to online users only
+                list.innerHTML = '';
+                count.textContent = onlineUsers.length;
+                onlineUsers.forEach(user => {
+                    if (user === currentUser) return;
+                    const div = document.createElement('div');
+                    div.className = 'user-item flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer';
+                    div.onclick = () => startDM(user);
+                    div.innerHTML = `
+                        <div class="relative">
+                            <div class="avatar text-sm">${user.charAt(0).toUpperCase()}</div>
+                            <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2" style="background: #10b981; border-color: var(--bg-secondary);"></div>
+                        </div>
+                        <span class="flex-1 text-sm font-medium truncate">${user}</span>
+                        <span class="text-xs opacity-70">Online</span>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+        }
+
+        // Display history
+        function displayHistory(messages) {
+            document.getElementById('messages').innerHTML = '';
+            messages.forEach(msg => displayMessage(msg, false));
+            scrollToBottom();
+        }
+
+        // Display message
+        function displayMessage(data, scroll = true) {
+            const container = document.getElementById('messages');
+            const isMine = data.sender === currentUser;
+            const messageId = data.id || Date.now(); // Fallback ID
+
+            const div = document.createElement('div');
+            div.className = `slide-in flex ${isMine ? 'justify-end' : 'justify-start'}`;
+            div.setAttribute('data-message-id', messageId);
+
+            const bubbleClass = isMine ? 'message-sent' : 'message-received';
+            
+            // Build reactions HTML
+            let reactionsHTML = '';
+            if (data.reactions && data.reactions.length > 0) {
+                const reactionGroups = {};
+                data.reactions.forEach(r => {
+                    if (!reactionGroups[r.emoji]) reactionGroups[r.emoji] = [];
+                    reactionGroups[r.emoji].push(r.username);
+                });
+                
+                reactionsHTML = '<div class="flex flex-wrap gap-1 mt-1">';
+                for (const [emoji, users] of Object.entries(reactionGroups)) {
+                    reactionsHTML += `<span class="text-xs px-2 py-0.5 rounded-full cursor-pointer" style="background: var(--accent-light);" onclick="reactToMessage(${messageId}, '${emoji}')" title="${users.join(', ')}">${emoji} ${users.length}</span>`;
+                }
+                reactionsHTML += '</div>';
+            }
+            
+            // Reply indicator with preview
+            let replyHTML = '';
+            if (data.reply_to) {
+                // Get the original message text from cache
+                const originalMsg = messagesCache[data.reply_to];
+                const replyText = originalMsg ? 
+                    (originalMsg.length > 50 ? originalMsg.substring(0, 50) + '...' : originalMsg) : 
+                    `Message #${data.reply_to}`;
+                replyHTML = `<div class="text-xs opacity-70 mb-2 pb-2 border-l-2 pl-2" style="border-color: var(--accent);">
+                    <p class="font-medium">↩ ${escapeHtml(replyText)}</p>
+                </div>`;
+            }
+            
+            // Cache this message for future replies
+            if (messageId && data.message) {
+                messagesCache[messageId] = data.message;
+            }
+            
+            // Edited badge
+            const editedBadge = data.edited ? '<span class="text-xs opacity-50 ml-2">(edited)</span>' : '';
+            
+            // Delivery/Seen indicators (for sent messages only)
+            const deliveryIndicator = isMine ? '<span class="text-xs opacity-50 ml-1">✓✓</span>' : '';
+            
+            // Escape message text safely
+            const safeMessage = escapeHtml(data.message || '');
+            const safeMessageForAttr = safeMessage.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+            
+            // File attachment HTML
+            let fileHTML = '';
+            if (data.file_url) {
+                if (data.file_type === 'image') {
+                    fileHTML = `<img src="${data.file_url}" class="max-w-full rounded-lg mt-2 cursor-pointer hover:opacity-90 transition" style="max-height: 300px;" onclick="window.open('${data.file_url}', '_blank')">`;
+                } else {
+                    const fileName = data.file_url.split('/').pop();
+                    const fileExt = fileName.split('.').pop().toLowerCase();
+                    
+                    // Choose icon based on file type
+                    let fileIcon = '📄';
+                    if (fileExt === 'pdf') fileIcon = '📕';
+                    else if (['doc', 'docx'].includes(fileExt)) fileIcon = '📘';
+                    else if (['xls', 'xlsx'].includes(fileExt)) fileIcon = '📗';
+                    else if (['ppt', 'pptx'].includes(fileExt)) fileIcon = '📙';
+                    else if (['zip', 'rar', '7z'].includes(fileExt)) fileIcon = '📦';
+                    else if (['mp4', 'avi', 'mov'].includes(fileExt)) fileIcon = '🎬';
+                    else if (['mp3', 'wav', 'ogg'].includes(fileExt)) fileIcon = '🎵';
+                    
+                    fileHTML = `<a href="${data.file_url}" target="_blank" download class="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg hover:opacity-80 transition cursor-pointer" style="background: rgba(0,0,0,0.1); max-width: 300px;">
+                        <span class="text-2xl">${fileIcon}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium truncate">${fileName}</p>
+                            <p class="text-xs opacity-70">${fileExt.toUpperCase()} file</p>
+                        </div>
+                        <span class="text-xs opacity-50">↓</span>
+                    </a>`;
+                }
+            }
+            
+            // Create full timestamp for tooltip
+            const fullTimestamp = new Date(data.timestamp).toLocaleString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+            
+            div.innerHTML = `
+                <div class="max-w-[80%] sm:max-w-[70%]">
+                    ${!isMine ? `<p class="text-xs font-medium mb-1.5 px-2" style="color: var(--text-secondary);">${escapeHtml(data.sender)}</p>` : ''}
+                    <div class="${bubbleClass} px-5 py-3 rounded-2xl relative message-bubble" oncontextmenu="showMessageMenu(event, ${messageId}, ${isMine}, '${safeMessageForAttr}'); return false;">
+                        ${replyHTML}
+                        ${safeMessage ? `<p class="text-sm break-words leading-relaxed">${safeMessage}</p>` : ''}
+                        ${fileHTML}
+                        <p class="text-xs opacity-70 mt-1" title="${fullTimestamp}">
+                            <span data-timestamp="${data.timestamp}">${getRelativeTime(data.timestamp)}</span>${editedBadge}${deliveryIndicator}
+                        </p>
+                    </div>
+                    ${reactionsHTML}
+                    ${data.id ? `
+                    <div class="flex gap-1 mt-1 message-actions opacity-0 transition-opacity">
+                        <button onclick="showEmojiPicker(${messageId})" class="text-xs px-2 py-1 rounded" style="background: var(--bg-glass);" title="React">😊</button>
+                        ${isMine ? `
+                        <button onclick="editMessage(${messageId}, '${safeMessageForAttr}')" class="text-xs px-2 py-1 rounded" style="background: var(--bg-glass);" title="Edit">✏️</button>
+                        <button onclick="deleteMessage(${messageId})" class="text-xs px-2 py-1 rounded" style="background: var(--bg-glass);" title="Delete">🗑️</button>
+                        ` : ''}
+                        <button onclick="replyToMessage(${messageId})" class="text-xs px-2 py-1 rounded" style="background: var(--bg-glass);" title="Reply">💬</button>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            container.appendChild(div);
+            document.getElementById('welcome-screen').style.display = 'none';
+            
+            if (scroll) scrollToBottom();
+        }
+
+        // Send message
+        async function sendMessage(event) {
+            event.preventDefault();
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+
+            if (!message && !selectedFile) return;
+
+            // Stop typing indicator
+            if (isTyping) {
+                ws.send(JSON.stringify({ type: 'stop_typing', recipient: currentRecipient }));
+                isTyping = false;
+            }
+
+            let fileUrl = null;
+            let fileType = null;
+
+            // Upload file if selected
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                try {
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    fileUrl = data.file_url;
+                    fileType = data.file_type;
+                } catch (error) {
+                    console.error('File upload failed:', error);
+                    alert('Failed to upload file');
+                    return;
+                }
+            }
+
+            ws.send(JSON.stringify({
+                type: 'message',
+                message: message,
+                recipient: currentRecipient,
+                reply_to: replyingToId,
+                file_url: fileUrl,
+                file_type: fileType
+            }));
+
+            input.value = '';
+            clearFileSelection();
+            input.focus();
+            
+            // Clear reply
+            if (replyingToId) {
+                cancelReply();
+            }
+        }
+
+        // Show group chat
+        function showGroupChat() {
+            currentRecipient = "GROUP";
+            document.getElementById('chat-title').textContent = 'Group Chat';
+            document.getElementById('chat-subtitle').textContent = 'Everyone can see these messages';
+            document.getElementById('input-area').classList.remove('hidden');
+            document.getElementById('welcome-screen').style.display = 'none';
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'get_history', recipient: 'GROUP' }));
+            }
+
+            closeSidebar();
+        }
+
+        // Start DM
+        function startDM(user) {
+            currentRecipient = user;
+            document.getElementById('chat-title').textContent = user;
+            updateChatHeaderStatus();
+            document.getElementById('input-area').classList.remove('hidden');
+            document.getElementById('welcome-screen').style.display = 'none';
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'get_history', recipient: user }));
+            }
+
+            closeSidebar();
+        }
+
+        // Update chat header status
+        function updateChatHeaderStatus() {
+            const subtitle = document.getElementById('chat-subtitle');
+            
+            if (currentRecipient === 'GROUP') {
+                subtitle.textContent = 'Everyone can see these messages';
+            } else if (currentRecipient) {
+                const isOnline = onlineUsers.includes(currentRecipient);
+                if (isOnline) {
+                    subtitle.innerHTML = '<span style="color: #10b981;">● Online</span>';
+                } else {
+                    subtitle.innerHTML = '<span style="color: #9ca3af;">● Offline</span>';
+                }
+            }
+        }
+
+        // Show warning
+        function showWarning(message) {
+            document.getElementById('warning-text').textContent = message;
+            document.getElementById('warning-box').classList.remove('hidden');
+            setTimeout(() => document.getElementById('warning-box').classList.add('hidden'), 5000);
+        }
+
+        // Logout
+        function logout() {
+            if (ws) ws.close();
+            
+            // Clear session
+            localStorage.removeItem('currentUser');
+            sessionStorage.removeItem('userPassword');
+            
+            currentUser = null;
+            currentRecipient = "GROUP";
+
+            document.getElementById('auth-container').classList.remove('hidden');
+            document.getElementById('user-display').classList.add('hidden');
+            document.getElementById('navigation').classList.add('hidden');
+            document.getElementById('users-section').classList.add('hidden');
+            document.getElementById('logout-section').classList.add('hidden');
+            document.getElementById('input-area').classList.add('hidden');
+            document.getElementById('connection-status').classList.add('hidden');
+            document.getElementById('search-btn').classList.add('hidden');
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('welcome-screen').style.display = 'flex';
+            document.getElementById('chat-title').textContent = 'Welcome to MK Chat';
+            document.getElementById('chat-subtitle').textContent = 'Login to start messaging';
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+
+            closeSidebar();
+        }
+
+        // Utilities
+        function scrollToBottom() {
+            const container = document.getElementById('messages-container');
+            setTimeout(() => container.scrollTop = container.scrollHeight, 10);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            const isYesterday = new Date(now - 86400000).toDateString() === date.toDateString();
+            
+            const timeStr = date.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true
+            });
+            
+            if (isToday) {
+                return `Today at ${timeStr}`;
+            } else if (isYesterday) {
+                return `Yesterday at ${timeStr}`;
+            } else {
+                const dateStr = date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+                });
+                return `${dateStr} at ${timeStr}`;
+            }
+        }
+
+        // Relative time formatting (e.g., "2 minutes ago")
+        function getRelativeTime(timestamp) {
+            const now = new Date();
+            const past = new Date(timestamp);
+            const diffMs = now - past;
+            const diffSecs = Math.floor(diffMs / 1000);
+            const diffMins = Math.floor(diffSecs / 60);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            // Show relative time for recent messages
+            if (diffSecs < 60) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 6) return `${diffHours}h ago`;
+            
+            // For older messages, show full timestamp
+            return formatTime(timestamp);
+        }
+
+        // Update all timestamps
+        function updateAllTimestamps() {
+            document.querySelectorAll('[data-timestamp]').forEach(el => {
+                const timestamp = el.getAttribute('data-timestamp');
+                el.textContent = getRelativeTime(timestamp);
+            });
+        }
+
+        // Enhanced Features Functions
+
+        // Typing indicators with proper chat separation
+        function showTypingIndicator(username, recipient) {
+            console.log(`[TYPING] ${username} is typing. Recipient param: ${recipient}. Current chat: ${currentRecipient}`);
+            
+            // For private chats: recipient = the person typing (username)
+            // For group chat: recipient = "GROUP"
+            // Show indicator if we're in the chat with the person typing
+            const chatToShow = recipient; // The chat context where typing should appear
+            
+            if (chatToShow !== currentRecipient) {
+                console.log(`[TYPING] Skipped - different chat (${chatToShow} vs ${currentRecipient})`);
+                return;
+            }
+            
+            if (!typingUsers[chatToShow]) {
+                typingUsers[chatToShow] = new Set();
+            }
+            typingUsers[chatToShow].add(username);
+            console.log(`[TYPING] Added ${username} to ${chatToShow}. Total:`, Array.from(typingUsers[chatToShow]));
+            updateTypingDisplay();
+        }
+
+        function hideTypingIndicator(username, recipient) {
+            console.log(`[TYPING] ${username} stopped typing. Recipient: ${recipient}`);
+            const chatToHide = recipient;
+            
+            if (typingUsers[chatToHide]) {
+                typingUsers[chatToHide].delete(username);
+                if (typingUsers[chatToHide].size === 0) {
+                    delete typingUsers[chatToHide];
+                }
+            }
+            updateTypingDisplay();
+        }
+
+        function updateTypingDisplay() {
+            const indicator = document.getElementById('typing-indicator');
+            const text = document.getElementById('typing-text');
+            
+            const currentChatUsers = typingUsers[currentRecipient];
+            
+            console.log(`[TYPING] Display update. CurrentRecipient: ${currentRecipient}, Users:`, currentChatUsers ? Array.from(currentChatUsers) : 'none');
+            
+            if (currentChatUsers && currentChatUsers.size > 0) {
+                const users = Array.from(currentChatUsers);
+                if (users.length === 1) {
+                    text.textContent = `${users[0]} is typing...`;
+                } else if (users.length === 2) {
+                    text.textContent = `${users[0]} and ${users[1]} are typing...`;
+                } else {
+                    text.textContent = `${users.length} people are typing...`;
+                }
+                indicator.classList.remove('hidden');
+                console.log('[TYPING] ✅ Indicator SHOWN');
+            } else {
+                indicator.classList.add('hidden');
+                console.log('[TYPING] ❌ Indicator hidden');
+            }
+        }
+
+        // Handle typing event
+        function handleTyping() {
+            const input = document.getElementById('message-input');
+            const hasText = input && input.value && input.value.trim().length > 0;
+            
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.warn('[TYPING] WebSocket not ready');
+                return;
+            }
+            
+            if (hasText) {
+                // User is typing
+                if (!isTyping) {
+                    console.log(`[TYPING] Sending typing event to ${currentRecipient}`);
+                    ws.send(JSON.stringify({ type: 'typing', recipient: currentRecipient }));
+                    isTyping = true;
+                }
+
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        console.log(`[TYPING] Timeout - sending stop_typing to ${currentRecipient}`);
+                        ws.send(JSON.stringify({ type: 'stop_typing', recipient: currentRecipient }));
+                    }
+                    isTyping = false;
+                }, 2000);
+            } else {
+                // Input is empty, stop typing immediately
+                if (isTyping && ws && ws.readyState === WebSocket.OPEN) {
+                    console.log(`[TYPING] Input cleared - sending stop_typing to ${currentRecipient}`);
+                    ws.send(JSON.stringify({ type: 'stop_typing', recipient: currentRecipient }));
+                    isTyping = false;
+                }
+                clearTimeout(typingTimeout);
+            }
+        }
+
+        // File upload handling
+        function handleFileSelect(event) {
+            selectedFile = event.target.files[0];
+            if (selectedFile) {
+                // Show file preview area
+                const preview = document.getElementById('file-preview');
+                const fileName = document.getElementById('file-name');
+                const fileSize = document.getElementById('file-size');
+                const fileIcon = document.getElementById('file-icon');
+                
+                // Calculate file size
+                const sizeInKB = (selectedFile.size / 1024).toFixed(1);
+                const sizeText = sizeInKB > 1024 ? `${(sizeInKB / 1024).toFixed(1)} MB` : `${sizeInKB} KB`;
+                
+                // Set file icon based on type
+                const fileType = selectedFile.type;
+                const ext = selectedFile.name.split('.').pop().toLowerCase();
+                
+                if (fileType.startsWith('image/')) {
+                    fileIcon.textContent = '🖼️';
+                } else if (ext === 'pdf') {
+                    fileIcon.textContent = '�';
+                } else if (['doc', 'docx'].includes(ext)) {
+                    fileIcon.textContent = '📘';
+                } else if (['xls', 'xlsx'].includes(ext)) {
+                    fileIcon.textContent = '📗';
+                } else if (['ppt', 'pptx'].includes(ext)) {
+                    fileIcon.textContent = '📙';
+                } else if (['zip', 'rar', '7z'].includes(ext)) {
+                    fileIcon.textContent = '📦';
+                } else if (fileType.startsWith('video/')) {
+                    fileIcon.textContent = '🎬';
+                } else if (fileType.startsWith('audio/')) {
+                    fileIcon.textContent = '🎵';
+                } else {
+                    fileIcon.textContent = '📄';
+                }
+                
+                fileName.textContent = selectedFile.name;
+                fileSize.textContent = sizeText;
+                preview.classList.remove('hidden');
+            }
+        }
+        
+        function clearFileSelection() {
+            selectedFile = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-preview').classList.add('hidden');
+        }
+
+        // Reactions
+        function showEmojiPicker(messageId) {
+            const emojis = ['❤️', '👍', '😂', '😮', '😢', '🔥'];
+            const picker = document.createElement('div');
+            picker.className = 'fixed inset-0 flex items-center justify-center z-50';
+            picker.innerHTML = `
+                <div class="glass rounded-2xl p-4 shadow-lg">
+                    <div class="flex gap-2">
+                        ${emojis.map(e => `<button onclick="reactToMessage(${messageId}, '${e}'); this.closest('.fixed').remove();" class="text-3xl p-2 hover:scale-110 transition">${e}</button>`).join('')}
+                    </div>
+                </div>
+            `;
+            picker.onclick = (e) => { if (e.target === picker) picker.remove(); };
+            document.body.appendChild(picker);
+        }
+
+        function reactToMessage(messageId, emoji) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'react',
+                    message_id: messageId,
+                    emoji: emoji
+                }));
+            }
+        }
+
+        function updateReaction(messageId, emoji, username) {
+            // Reload message history to update reactions
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'get_history', recipient: currentRecipient }));
+            }
+        }
+
+        // Edit & Delete with Modal
+        function editMessage(messageId, currentText) {
+            editingMessageId = messageId;
+            const textarea = document.getElementById('edit-textarea');
+            textarea.value = currentText.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+            document.getElementById('edit-modal').classList.remove('hidden');
+            textarea.focus();
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+            editingMessageId = null;
+        }
+
+        function saveEdit() {
+            const newText = document.getElementById('edit-textarea').value.trim();
+            if (newText && editingMessageId && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'edit',
+                    message_id: editingMessageId,
+                    new_text: newText
+                }));
+                closeEditModal();
+            }
+        }
+
+        function deleteMessage(messageId) {
+            deletingMessageId = messageId;
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            deletingMessageId = null;
+            document.getElementById('delete-modal').classList.add('hidden');
+        }
+
+        function confirmDelete() {
+            if (deletingMessageId && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'delete',
+                    message_id: deletingMessageId
+                }));
+                closeDeleteModal();
+            }
+        }
+
+        function replyToMessage(messageId) {
+            replyingToId = messageId;
+            const messageEl = document.querySelector(`[data-message-id="${messageId}"] .message-bubble p`);
+            if (messageEl) {
+                const replyIndicator = document.getElementById('reply-indicator');
+                const replyPreview = document.getElementById('reply-preview');
+                replyPreview.textContent = messageEl.textContent.substring(0, 50) + (messageEl.textContent.length > 50 ? '...' : '');
+                replyIndicator.classList.remove('hidden');
+                document.getElementById('message-input').focus();
+            }
+        }
+
+        function cancelReply() {
+            replyingToId = null;
+            document.getElementById('reply-indicator').classList.add('hidden');
+        }
+
+        function updateEditedMessage(messageId, newText) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'get_history', recipient: currentRecipient }));
+            }
+        }
+
+        function removeDeletedMessage(messageId) {
+            const msgElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (msgElement) {
+                msgElement.style.opacity = '0';
+                setTimeout(() => msgElement.remove(), 300);
+            }
+        }
+
+        // Message Menu
+        function showMessageMenu(event, messageId, isMine, messageText) {
+            event.preventDefault();
+            const menu = document.createElement('div');
+            menu.className = 'fixed glass rounded-xl p-2 shadow-lg z-50';
+            menu.style.left = event.pageX + 'px';
+            menu.style.top = event.pageY + 'px';
+            
+            menu.innerHTML = `
+                <button onclick="replyToMessage(${messageId}); this.closest('.fixed').remove();" class="block w-full text-left px-4 py-2 hover:bg-[#e0e7ff] rounded-lg transition">💬 Reply</button>
+                <button onclick="showEmojiPicker(${messageId}); this.closest('.fixed').remove();" class="block w-full text-left px-4 py-2 hover:bg-[#e0e7ff] rounded-lg transition">😊 React</button>
+                ${isMine === 'true' ? `
+                    <button onclick="editMessage(${messageId}, '${messageText}'); this.closest('.fixed').remove();" class="block w-full text-left px-4 py-2 hover:bg-[#e0e7ff] rounded-lg transition">✏️ Edit</button>
+                    <button onclick="deleteMessage(${messageId}); this.closest('.fixed').remove();" class="block w-full text-left px-4 py-2 hover:bg-[#e0e7ff] rounded-lg transition text-red-600">🗑️ Delete</button>
+                ` : ''}
+            `;
+            
+            menu.onclick = (e) => e.stopPropagation();
+            document.addEventListener('click', () => menu.remove(), { once: true });
+            document.body.appendChild(menu);
+        }
+
+        // Touch handling for mobile
+        let touchTimer;
+        function handleTouchStart(event, messageId, isMine, messageText) {
+            touchTimer = setTimeout(() => {
+                showMessageMenu(event, messageId, isMine, messageText);
+            }, 500);
+        }
+
+        document.addEventListener('touchend', () => {
+            clearTimeout(touchTimer);
+        });
+
+        // Search
+        function toggleSearch() {
+            const searchModal = document.getElementById('search-modal');
+            if (searchModal) {
+                searchModal.remove();
+            } else {
+                const modal = document.createElement('div');
+                modal.id = 'search-modal';
+                modal.className = 'fixed inset-0 flex items-start justify-center pt-20 z-50';
+                modal.innerHTML = `
+                    <div class="glass rounded-2xl p-5 w-full max-w-md mx-4 shadow-xl">
+                        <div class="flex items-center gap-3 mb-4">
+                            <h3 class="text-lg font-bold flex-1">Search Messages</h3>
+                            <button onclick="this.closest('.fixed').remove()" class="text-2xl">&times;</button>
+                        </div>
+                        <input type="text" id="search-input" placeholder="Type to search..." class="w-full px-4 py-3 glass rounded-xl border mb-3" style="border-color: var(--border);" oninput="performSearch(this.value)">
+                        <div id="search-results" class="max-h-96 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+                `;
+                modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+                document.body.appendChild(modal);
+                document.getElementById('search-input').focus();
+            }
+        }
+
+        function performSearch(query) {
+            if (query.trim() && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'search',
+                    query: query
+                }));
+            }
+        }
+
+        function displaySearchResults(results) {
+            const container = document.getElementById('search-results');
+            if (!container) return;
+            
+            if (results.length === 0) {
+                container.innerHTML = '<p class="text-center py-4" style="color: var(--text-secondary);">No messages found</p>';
+                return;
+            }
+            
+            container.innerHTML = results.map(r => `
+                <div class="p-3 glass rounded-xl mb-2 cursor-pointer hover:bg-[#e0e7ff] transition">
+                    <p class="text-xs font-semibold" style="color: var(--accent);">${r.sender} → ${r.recipient}</p>
+                    <p class="text-sm mt-1">${escapeHtml(r.message)}</p>
+                    <p class="text-xs mt-1" style="color: var(--text-secondary);">${formatTime(r.timestamp)}</p>
+                </div>
+            `).join('');
+        }
+
+        // Status update
+        function updateUserStatus(username, status) {
+            // Update user list with status indicator
+            console.log(`${username} is now ${status}`);
+        }
+    </script>
+</body>
+</html>
