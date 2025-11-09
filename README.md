@@ -177,7 +177,7 @@ chatmk/
 
 ### Welcome Screen
 <div align="center">
-  <img src="docs/images/welcome-screen.png" alt="MK Chat Welcome Screen" width="300"/>
+  <img src="docs/images/Screenshot 2025-11-10 005156.png" alt="MK Chat Welcome Screen" width="300"/>
   <p><i>Clean, modern welcome screen with feature highlights</i></p>
 </div>
 
@@ -191,7 +191,7 @@ chatmk/
 
 ### Chat Interface
 <div align="center">
-  <img src="docs/images/chat-view.png" alt="MK Chat Interface" width="300"/>
+  <img src="docs/images/Screenshot 2025-11-10 005215.png" alt="MK Chat Interface" width="300"/>
   <p><i>Beautiful purple gradient theme with message history</i></p>
 </div>
 
@@ -207,7 +207,7 @@ chatmk/
 
 ### Sidebar & Navigation
 <div align="center">
-  <img src="docs/images/sidebar.png" alt="MK Chat Sidebar" width="300"/>
+  <img src="docs/images/Screenshot 2025-11-10 005234.png" alt="MK Chat Sidebar" width="300"/>
   <p><i>Organized sidebar with user management</i></p>
 </div>
 
@@ -222,7 +222,7 @@ chatmk/
 
 ### File Sharing & Messages
 <div align="center">
-  <img src="docs/images/file-sharing.png" alt="File Sharing Feature" width="300"/>
+  <img src="docs/images/Screenshot 2025-11-10 005243.png" alt="File Sharing Feature" width="300"/>
   <p><i>Seamless file sharing with type-specific icons</i></p>
 </div>
 
