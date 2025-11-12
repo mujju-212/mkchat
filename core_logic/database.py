@@ -1,4 +1,4 @@
-import sqlite3
+﻿import sqlite3
 import hashlib
 from typing import List, Dict
 from datetime import datetime
@@ -11,9 +11,16 @@ class Database:
         self.db_path = db_path
         self._init_database()
 
+    def _get_connection(self):
+        """Get database connection with timeout and optimized settings."""
+        conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
+        conn.execute("PRAGMA journal_mode=WAL")  # Write-Ahead Logging for better concurrency
+        conn.execute("PRAGMA busy_timeout=30000")  # 30 second timeout
+        return conn
+
     def _init_database(self):
         """Initialize database tables."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         # Users table
@@ -84,7 +91,7 @@ class Database:
     def create_user(self, username: str, password: str) -> bool:
         """Create a new user."""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             
             password_hash = self._hash_password(password)
@@ -103,7 +110,7 @@ class Database:
 
     def verify_user(self, username: str, password: str) -> bool:
         """Verify user credentials."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         password_hash = self._hash_password(password)
@@ -122,7 +129,7 @@ class Database:
 
     def user_exists(self, username: str) -> bool:
         """Check if user exists."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
@@ -133,7 +140,7 @@ class Database:
 
     def get_all_users(self) -> List[str]:
         """Get all registered usernames."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("SELECT username FROM users ORDER BY username")
@@ -144,7 +151,7 @@ class Database:
 
     def save_message(self, sender: str, recipient: str, message: str, timestamp: str):
         """Save a message to database."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute(
@@ -157,7 +164,7 @@ class Database:
 
     def get_group_messages(self, limit: int = 100) -> List[Dict]:
         """Get group chat messages."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute(
@@ -184,7 +191,7 @@ class Database:
 
     def get_private_messages(self, user1: str, user2: str, limit: int = 100) -> List[Dict]:
         """Get private messages between two users."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute(
@@ -211,7 +218,7 @@ class Database:
 
     def get_total_users(self) -> int:
         """Get total number of registered users."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM users")
         count = cursor.fetchone()[0]
@@ -220,7 +227,7 @@ class Database:
 
     def get_total_messages(self) -> int:
         """Get total number of messages."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM messages")
         count = cursor.fetchone()[0]
@@ -229,7 +236,7 @@ class Database:
 
     def get_messages_today(self) -> int:
         """Get number of messages sent today."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         today = datetime.now().date().isoformat()
         cursor.execute(
@@ -242,7 +249,7 @@ class Database:
 
     def get_group_message_count(self) -> int:
         """Get total number of group messages."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM messages WHERE recipient = 'GROUP'")
         count = cursor.fetchone()[0]
@@ -251,7 +258,7 @@ class Database:
 
     def get_all_users_with_stats(self) -> List[Dict]:
         """Get all users with their message counts."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -278,7 +285,7 @@ class Database:
 
     def get_all_messages(self, limit: int = 500) -> List[Dict]:
         """Get all messages from the system."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -303,7 +310,7 @@ class Database:
     
     def update_user_status(self, username: str, status: str, status_message: str = ''):
         '''Update user status.'''
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute(
             'UPDATE users SET status = ?, status_message = ? WHERE username = ?',
@@ -314,7 +321,7 @@ class Database:
 
     def get_user_info(self, username: str) -> Dict:
         '''Get user information.'''
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute(
             'SELECT username, avatar_color, status, status_message FROM users WHERE username = ?',
@@ -334,7 +341,7 @@ class Database:
 
     def update_message(self, message_id: int, new_text: str):
         '''Edit a message.'''
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute(
             'UPDATE messages SET message = ?, edited = 1 WHERE id = ?',
@@ -345,7 +352,7 @@ class Database:
 
     def delete_message(self, message_id: int):
         '''Delete a message (soft delete).'''
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute(
             'UPDATE messages SET deleted = 1 WHERE id = ?',
@@ -357,7 +364,7 @@ class Database:
     def add_reaction(self, message_id: int, username: str, emoji: str):
         '''Add a reaction to a message.'''
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             timestamp = datetime.now().isoformat()
             cursor.execute(
@@ -369,7 +376,7 @@ class Database:
             return True
         except sqlite3.IntegrityError:
             # Reaction already exists, remove it
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             cursor.execute(
                 'DELETE FROM reactions WHERE message_id = ? AND username = ? AND emoji = ?',
@@ -381,7 +388,7 @@ class Database:
 
     def get_message_reactions(self, message_id: int) -> List[Dict]:
         '''Get reactions for a message.'''
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute(
             'SELECT emoji, username FROM reactions WHERE message_id = ?',
@@ -398,7 +405,7 @@ class Database:
 
     def save_message_with_id(self, sender: str, recipient: str, message: str, timestamp: str, reply_to: int = None, file_url: str = None, file_type: str = None) -> int:
         '''Save a message and return its ID.'''
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute(
@@ -413,7 +420,7 @@ class Database:
 
     def get_group_messages_enhanced(self, limit: int = 100) -> List[Dict]:
         '''Get group chat messages with enhanced fields.'''
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute(
@@ -448,7 +455,7 @@ class Database:
 
     def get_private_messages_enhanced(self, user1: str, user2: str, limit: int = 100) -> List[Dict]:
         '''Get private messages with enhanced fields.'''
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute(
@@ -483,7 +490,7 @@ class Database:
 
     def search_messages(self, query: str, username: str = None) -> List[Dict]:
         '''Search messages by content.'''
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         if username:
@@ -525,7 +532,7 @@ class Database:
     def mark_message_read(self, message_id: int, username: str):
         '''Mark a message as read.'''
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             read_at = datetime.now().isoformat()
             cursor.execute(
@@ -536,3 +543,4 @@ class Database:
             conn.close()
         except sqlite3.IntegrityError:
             pass  # Already marked as read
+
